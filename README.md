@@ -1,13 +1,14 @@
 # Make It Rain
 
-Automated inventory purchasing bot for Target, Best Buy, and other retailers.
+Automated inventory purchasing bot for Target, Best Buy, Costco, Sam's Club, and other retailers.
 
 ## Documentation
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System design and component overview
 - **[ANTI-DETECTION.md](./ANTI-DETECTION.md)** - Stealth techniques and bot evasion
 - **[PROXIES.md](./PROXIES.md)** - Proxy types, providers, and rotation strategies
-- **[RETAILERS.md](./RETAILERS.md)** - Target & Best Buy specific implementation
+- **[RETAILERS.md](./RETAILERS.md)** - Target, Best Buy, Costco, Sam's Club implementation
+- **[FAST-CHECKOUT.md](./FAST-CHECKOUT.md)** - Speed optimization, direct cart URLs, API shortcuts
 - **[ROADMAP.md](./ROADMAP.md)** - Implementation phases and tasks
 
 ## Tech Stack

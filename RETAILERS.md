@@ -422,6 +422,326 @@ async function handleBestBuyQueue(page: Page): Promise<boolean> {
 
 ---
 
+## Costco
+
+### Overview
+
+Costco uses Akamai's enterprise bot protection, making it one of the more challenging retailers for automation. Traditional headless browser approaches often fail with 401 Unauthorized errors even before reaching the product page.
+
+### Anti-Bot Measures
+
+| Protection | Description |
+|------------|-------------|
+| **Akamai Bot Manager** | Enterprise-grade protection blocking headless browsers |
+| **401 Unauthorized** | Backend API protected, blocks even Selenium/Playwright |
+| **Membership Required** | Must be logged-in member to purchase |
+| **CAPTCHA Checkboxes** | Checkbox CAPTCHAs may appear (image CAPTCHAs require manual solve) |
+| **Separate Carts** | Same-day delivery (Instacart) cart separate from costco.com cart |
+
+### Account Requirements
+
+```typescript
+interface CostcoAccount {
+  email: string;
+  password: string;
+  membershipNumber: string;
+  membershipType: 'gold_star' | 'executive' | 'business';
+  paymentMethod: {
+    type: 'credit' | 'debit' | 'costco_visa';
+    cardNumber: string;
+    expiry: string;
+    cvv: string;
+  };
+  shippingAddress: Address;
+}
+```
+
+### Delivery Options
+
+| Option | Platform | Notes |
+|--------|----------|-------|
+| **Standard Shipping** | costco.com | 3-7 business days |
+| **Same-Day Delivery** | sameday.costco.com (Instacart) | 1 hour - same day, $35 minimum |
+| **2-Day Delivery** | costco.com | Select items only |
+
+### Implementation Challenges
+
+```typescript
+class CostcoModule implements RetailerModule {
+  name = 'costco';
+  baseUrl = 'https://www.costco.com';
+
+  // WARNING: Costco's Akamai protection is very aggressive
+  // Standard Playwright will likely fail with 401 errors
+
+  async login(page: Page, account: AccountConfig): Promise<boolean> {
+    // Akamai checks start immediately
+    // Must have valid cookies/session or will be blocked
+
+    await page.goto('https://www.costco.com/LogonForm');
+    await randomDelay(2000, 4000);
+
+    // Check if Akamai blocked us
+    const blocked = await page.$('text="Access Denied"');
+    if (blocked) {
+      console.log('Blocked by Akamai - need better stealth or residential proxy');
+      return false;
+    }
+
+    await humanType(page, '#logonId', account.email);
+    await randomDelay(300, 600);
+
+    await humanType(page, '#logonPassword', account.password);
+    await randomDelay(300, 600);
+
+    await page.click('input[value="Sign In"]');
+
+    try {
+      await page.waitForNavigation({ timeout: 15000 });
+      return await this.verifyLogin(page);
+    } catch {
+      return false;
+    }
+  }
+
+  async checkStock(page: Page, productUrl: string): Promise<StockStatus> {
+    await page.goto(productUrl);
+    await randomDelay(1000, 2000);
+
+    // Check for out of stock
+    const outOfStock = await page.$('.out-of-stock-message, .oos-overlay');
+    if (outOfStock) {
+      return { inStock: false };
+    }
+
+    // Check for add to cart
+    const addToCart = await page.$('#add-to-cart-btn:not([disabled])');
+    return { inStock: !!addToCart };
+  }
+
+  async addToCart(page: Page, productUrl: string): Promise<boolean> {
+    await page.goto(productUrl);
+    await randomDelay(1000, 2000);
+
+    const addButton = await page.$('#add-to-cart-btn:not([disabled])');
+    if (!addButton) {
+      return false;
+    }
+
+    await addButton.click();
+    await randomDelay(1500, 3000);
+
+    // Check for CAPTCHA
+    const captcha = await page.$('.g-recaptcha, #px-captcha');
+    if (captcha) {
+      console.log('CAPTCHA detected - may need manual intervention');
+      // Handle or wait for manual solve
+    }
+
+    // Verify cart
+    await page.goto('https://www.costco.com/CheckoutCartDisplayView');
+    const cartItems = await page.$$('.cart-item, .product-cell');
+    return cartItems.length > 0;
+  }
+}
+```
+
+### Bypassing Akamai (Advanced)
+
+Akamai is one of the hardest protections to bypass. Options:
+
+1. **Real Browser Profile**: Use saved browser profile with history/cookies
+2. **Residential Proxies**: Datacenter IPs are immediately flagged
+3. **Anti-Detect Browsers**: Kameleo, Multilogin with real fingerprints
+4. **Request-Based with Sensors**: Replicate Akamai sensor data (very complex)
+
+### Same-Day via Instacart
+
+Costco same-day uses Instacart's infrastructure. Consider automating through Instacart's platform instead:
+
+```typescript
+// Same-day delivery goes through Instacart
+const sameDayUrl = 'https://sameday.costco.com';
+
+// Instacart has its own bot protection but may be easier than Costco direct
+// Minimum order: $35
+// Delivery fee avoided at $75+
+```
+
+---
+
+## Sam's Club
+
+### Overview
+
+Sam's Club (Walmart-owned) is transitioning to app-first checkout with their "Scan & Go" system. By December 2025, all traditional checkouts will be replaced with AI-powered exit technology. Online ordering still works via website/app.
+
+### Anti-Bot Measures
+
+| Protection | Description |
+|------------|-------------|
+| **Membership Required** | Must be logged-in Plus or Club member |
+| **App-Focused** | Pushing users to mobile app for best experience |
+| **AI Exit Verification** | In-store uses computer vision to verify purchases |
+| **Transaction Limits** | $1,500 per transaction, $3,000 daily via Scan & Go |
+
+### Account Requirements
+
+```typescript
+interface SamsClubAccount {
+  email: string;
+  password: string;
+  membershipType: 'club' | 'plus'; // Plus gets free shipping
+  paymentMethod: {
+    type: 'credit' | 'debit' | 'sams_mastercard';
+    cardNumber: string;
+    expiry: string;
+    cvv: string;
+  };
+  shippingAddress: Address;
+}
+```
+
+### Membership Benefits for Automation
+
+| Feature | Club | Plus |
+|---------|------|------|
+| **Free Shipping** | No (varies) | Yes (most items) |
+| **Early Access** | No | Sometimes |
+| **Curbside Pickup** | Yes | Yes |
+
+### Implementation Flow
+
+```typescript
+class SamsClubModule implements RetailerModule {
+  name = 'samsclub';
+  baseUrl = 'https://www.samsclub.com';
+
+  async login(page: Page, account: AccountConfig): Promise<boolean> {
+    const hasCookies = await this.loadCookies(page, account.id);
+
+    if (hasCookies) {
+      await page.goto('https://www.samsclub.com/account');
+      if (await this.isLoggedIn(page)) {
+        return true;
+      }
+    }
+
+    await page.goto('https://www.samsclub.com/sams/account/signin/login.jsp');
+    await randomDelay(1500, 3000);
+
+    await humanType(page, '#emailField', account.email);
+    await randomDelay(300, 600);
+
+    await humanType(page, '#passwordField', account.password);
+    await randomDelay(300, 600);
+
+    await page.click('button[type="submit"]');
+
+    try {
+      await page.waitForNavigation({ timeout: 15000 });
+      await this.saveCookies(page, account.id);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async checkStock(page: Page, productUrl: string): Promise<StockStatus> {
+    await page.goto(productUrl);
+    await randomDelay(1000, 2000);
+
+    // Check availability
+    const outOfStock = await page.$('[data-automation="out-of-stock"]');
+    if (outOfStock) {
+      return { inStock: false };
+    }
+
+    const addToCart = await page.$('button[data-automation="add-to-cart"]:not([disabled])');
+    const shipAvailable = await page.$('[data-automation="shipping-available"]');
+    const pickupAvailable = await page.$('[data-automation="club-pickup"]');
+
+    return {
+      inStock: !!addToCart,
+      shipping: !!shipAvailable,
+      pickup: !!pickupAvailable,
+    };
+  }
+
+  async addToCart(page: Page, productUrl: string, options: CartOptions): Promise<boolean> {
+    await page.goto(productUrl);
+    await randomDelay(1000, 2000);
+
+    // Select fulfillment method if available
+    if (options.fulfillment === 'pickup') {
+      const pickupOption = await page.$('[data-automation="club-pickup"]');
+      if (pickupOption) {
+        await pickupOption.click();
+        await randomDelay(500, 1000);
+      }
+    }
+
+    const addButton = await page.$('button[data-automation="add-to-cart"]:not([disabled])');
+    if (!addButton) {
+      return false;
+    }
+
+    await addButton.click();
+    await randomDelay(1500, 3000);
+
+    // Verify in cart
+    await page.goto('https://www.samsclub.com/cart');
+    const cartItems = await page.$$('.cart-item');
+    return cartItems.length > 0;
+  }
+
+  async checkout(page: Page, account: AccountConfig): Promise<CheckoutResult> {
+    await page.goto('https://www.samsclub.com/cart');
+    await randomDelay(1000, 2000);
+
+    // Click checkout
+    await page.click('button[data-automation="checkout-btn"]');
+    await page.waitForNavigation();
+    await randomDelay(2000, 4000);
+
+    // Enter CVV if required (usually saved cards need this)
+    const cvvField = await page.$('input[data-automation="cvv-input"]');
+    if (cvvField) {
+      await humanType(page, 'input[data-automation="cvv-input"]', account.paymentMethod.cvv);
+      await randomDelay(500, 1000);
+    }
+
+    // Place order
+    await page.click('button[data-automation="place-order-btn"]');
+
+    const confirmation = await page.waitForSelector(
+      '[data-automation="order-confirmation"]',
+      { timeout: 30000 }
+    ).catch(() => null);
+
+    if (confirmation) {
+      const orderNumber = await page.$eval(
+        '[data-automation="order-number"]',
+        el => el.textContent
+      );
+      return { success: true, orderNumber };
+    }
+
+    return { success: false, error: 'Checkout failed' };
+  }
+}
+```
+
+### Direct Cart URLs (Not Available)
+
+Unlike some retailers, Sam's Club doesn't expose public add-to-cart URL parameters. Must use browser automation to add items.
+
+### Mobile App Consideration
+
+Sam's Club heavily favors the mobile app experience. For in-store purchases, the Scan & Go feature is the primary method. Online automation should focus on the website rather than trying to automate the mobile app.
+
+---
+
 ## Adding New Retailers
 
 ### Module Template
@@ -561,3 +881,9 @@ async function withRetry<T>(
 - [Refract Bot - Target Module](https://help.refractbot.com/modules/target)
 - [NikeShoeBot - Best Buy Bot](https://www.nikeshoebot.com/best-buy-bot/)
 - [AIO Bot - Target Bots](https://www.aiobot.com/target-bots/)
+- [Unwrangle - How to Scrape Costco 2025](https://www.unwrangle.com/blog/how-to-scrape-costco/)
+- [Stellar AIO - Costco Module](https://guides.stellaraio.com/stellar/retailers/costco)
+- [DataDome - Bot Security 2025](https://datadome.co/bot-management-protection/bigger-businesses-still-fail-bot-protection/)
+- [Walmart Tech - Sam's Club AI Exit Technology](https://tech.walmart.com/content/walmart-global-tech/en_us/blog/post/sams-club-ai-exit-technology.html)
+- [CNBC - Sam's Club Checkout-Free Future](https://www.cnbc.com/2024/10/07/sams-club-scan-and-go-technology.html)
+- [Best Buy Developer API](https://bestbuyapis.github.io/api-documentation/)
