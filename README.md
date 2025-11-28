@@ -18,7 +18,8 @@ Automated inventory purchasing bot for Target, Best Buy, Costco, Sam's Club, and
 - **Runtime:** Node.js 20+
 - **Language:** TypeScript
 - **Browser Automation:** Playwright + Stealth Plugin
-- **Proxies:** Residential/ISP (Bright Data, Oxylabs, etc.)
+- **AI Integration:** MCP (Model Context Protocol)
+- **Proxies:** Residential/ISP (Bright Data, Oxylabs, Smartproxy)
 
 ## Quick Start
 
@@ -26,13 +27,41 @@ Automated inventory purchasing bot for Target, Best Buy, Costco, Sam's Club, and
 # Install dependencies
 npm install
 
-# Run stealth test
-npx tsx test-stealth.ts
+# Copy and edit environment config
+cp .env.example .env
+# Edit .env with your proxy credentials and Costco login
+
+# Test browser stealth setup
+npm run test:browser
+
+# Run Costco stock monitor
+npm run test:costco
+```
+
+## MCP Server (AI-Controlled Browser)
+
+The bot includes an MCP server that allows Claude to control the browser:
+
+```bash
+# Run MCP server for Claude Desktop
+npm run mcp
+```
+
+See [SETUP.md](./SETUP.md) for Claude Desktop configuration.
+
+## Docker
+
+```bash
+# Build and run with Docker
+docker-compose up -d
+
+# View logs
+docker-compose logs -f monitor
 ```
 
 ## Status
 
-Planning phase - see [ROADMAP.md](./ROADMAP.md) for implementation details.
+✅ **Ready to use** - Browser automation with MCP integration complete.
 
 ## Disclaimer
 

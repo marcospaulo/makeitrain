@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "browser-automation": {
+      "command": "npx",
+      "args": ["tsx", "/Users/marcos/dev/make-it-rain/src/mcp/server.ts"],
+      "env": {
+        "PROXY_HOST": "gate.smartproxy.com",
+        "PROXY_PORT": "7000",
+        "PROXY_USER": "YOUR_PROXY_USERNAME",
+        "PROXY_PASS": "YOUR_PROXY_PASSWORD"
+      }
+    }
+  }
+}

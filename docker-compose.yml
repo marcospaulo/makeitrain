@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # MCP Browser Automation Server
+  mcp-browser:
+    build: .
+    container_name: makeitrain-mcp
+    environment:
+      # Proxy configuration (REQUIRED for Costco)
+      - PROXY_HOST=${PROXY_HOST}
+      - PROXY_PORT=${PROXY_PORT:-7000}
+      - PROXY_USER=${PROXY_USER}
+      - PROXY_PASS=${PROXY_PASS}
+      # Browser settings
+      - HEADLESS=false
+      - DISPLAY=:99
+      - ENABLE_VNC=true
+      # Session
+      - SCREENSHOT_DIR=/app/screenshots
+    ports:
+      - "5900:5900"  # VNC for debugging
+    volumes:
+      - ./screenshots:/app/screenshots
+      - ./data:/app/data
+    shm_size: '2gb'  # Required for Chromium
+    stdin_open: true
+    tty: true
+
+  # Stock Monitor (lightweight, runs continuously)
+  monitor:
+    build: .
+    container_name: makeitrain-monitor
+    command: ["npm", "run", "test:costco"]
+    environment:
+      - PROXY_HOST=${PROXY_HOST}
+      - PROXY_PORT=${PROXY_PORT:-7000}
+      - PROXY_USER=${PROXY_USER}
+      - PROXY_PASS=${PROXY_PASS}
+      - TARGET_URL=${TARGET_URL}
+      - TARGET_KEYWORDS=${TARGET_KEYWORDS}
+      - DISCORD_WEBHOOK=${DISCORD_WEBHOOK}
+      - DISPLAY=:99
+    volumes:
+      - ./screenshots:/app/screenshots
+      - ./data:/app/data
+    shm_size: '2gb'
+    restart: unless-stopped
+
+volumes:
+  screenshots:
+  data:

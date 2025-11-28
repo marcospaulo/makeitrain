@@ -1,0 +1,43 @@
+{
+  "name": "make-it-rain",
+  "version": "1.0.0",
+  "description": "Automated inventory purchasing bot for Target, Best Buy, Costco, Sam's Club, and other retailers.",
+  "type": "module",
+  "main": "dist/mcp/server.js",
+  "bin": {
+    "makeitrain-mcp": "./dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/mcp/server.ts",
+    "start": "node dist/mcp/server.js",
+    "mcp": "tsx src/mcp/server.ts",
+    "test:browser": "tsx src/test-browser.ts",
+    "test:costco": "tsx src/test-costco.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcospaulo/makeitrain.git"
+  },
+  "keywords": ["automation", "checkout", "bot", "playwright", "mcp"],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marcospaulo/makeitrain/issues"
+  },
+  "homepage": "https://github.com/marcospaulo/makeitrain#readme",
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.0",
+    "@modelcontextprotocol/sdk": "^1.23.0",
+    "dotenv": "^17.2.3",
+    "pino": "^10.1.0",
+    "playwright": "^1.57.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
