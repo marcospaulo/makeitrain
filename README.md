@@ -9,6 +9,7 @@ Automated inventory purchasing bot for Target, Best Buy, Costco, Sam's Club, and
 - **[PROXIES.md](./PROXIES.md)** - Proxy types, providers, and rotation strategies
 - **[RETAILERS.md](./RETAILERS.md)** - Target, Best Buy, Costco, Sam's Club implementation
 - **[FAST-CHECKOUT.md](./FAST-CHECKOUT.md)** - Speed optimization, direct cart URLs, API shortcuts
+- **[COSTCO-DEEP-DIVE.md](./COSTCO-DEEP-DIVE.md)** - Costco-specific strategies for product drops
 - **[ROADMAP.md](./ROADMAP.md)** - Implementation phases and tasks
 
 ## Tech Stack
